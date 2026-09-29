@@ -7,9 +7,12 @@ pricing/discounts, Metacritic scores, user reviews, and top free-to-play titles.
 
 from typing import Any, Dict, List, Optional
 import re
+import pandas as pd
+from bs4 import BeautifulSoup
 from scrapers.core.base_scraper import BaseScraper
 from scrapers.core.storage import DataStorage
-from scrapers.core.utils import clean_text, extract_digits, parse_price
+from scrapers.core.utils import clean_text, extract_digits, parse_price, extract_dom_metadata, table_to_dataframe
+
 
 
 class GameScraper(BaseScraper):
@@ -209,6 +212,64 @@ class GameScraper(BaseScraper):
             results = self._generate_mock_free_games(category, limit)
             
         return results
+
+    def games_to_dataframe(self, games_list: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert list of scraped game records into a clean Pandas DataFrame.
+        """
+        if not games_list:
+            return pd.DataFrame()
+            
+        rows = []
+        for g in games_list:
+            p_val = g.get("price", {})
+            amt = p_val.get("amount", 0.0) if isinstance(p_val, dict) else 0.0
+            cur = p_val.get("currency", "USD") if isinstance(p_val, dict) else "USD"
+            
+            rows.append({
+                "Title": g.get("title"),
+                "App_ID": str(g.get("app_id", g.get("game_id", ""))),
+                "Price": amt,
+                "Currency": cur,
+                "Is_Free": g.get("is_free", False),
+                "Reviews": g.get("user_reviews", g.get("short_description", "")),
+                "Platforms": ", ".join(g.get("platforms", [])) if isinstance(g.get("platforms"), list) else str(g.get("platform", "")),
+                "Store_URL": g.get("store_url", g.get("game_url", "")),
+            })
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas] Created Games DataFrame with {len(df)} titles")
+        return df
+
+    def scrape_steam_dom(self, app_id: str) -> Dict[str, Any]:
+        """
+        Inspect Steam storefront DOM structure using Requests and BeautifulSoup.
+        Extracts DOM nodes, pricing badges, sys requirements, and reviews.
+        """
+        url = f"https://store.steampowered.com/app/{app_id}"
+        self.logger.info(f"[Requests] Scraping Steam storefront DOM: {url}")
+        try:
+            soup = self.get_soup(url)
+        except Exception as e:
+            self.logger.warning(f"[Requests] Error loading Steam page ({e}). Generating mock DOM.")
+            soup = BeautifulSoup(f"<html><head><title>Steam App {app_id}</title></head><body><div class='apphub_AppName'>Cyberpunk 2077</div><div class='game_area_purchase_game'><span>$59.99</span></div></body></html>", "html.parser")
+            
+        dom_meta = extract_dom_metadata(soup)
+        self.logger.info(f"[BeautifulSoup DOM] Analyzed Steam DOM: {dom_meta.get('total_dom_elements')} elements, {dom_meta.get('total_links')} links")
+        
+        # DOM selectors for Steam specifics
+        name_tag = soup.select_one(".apphub_AppName, #appHubAppName, h2.pageheader")
+        game_name = clean_text(name_tag.get_text()) if name_tag else f"App {app_id}"
+        
+        price_tag = soup.select_one(".game_purchase_price, .discount_final_price")
+        price_text = clean_text(price_tag.get_text()) if price_tag else "$0.00"
+        
+        return {
+            "app_id": app_id,
+            "game_name": game_name,
+            "detected_price": price_text,
+            "dom_metadata": dom_meta,
+        }
+
 
     def _generate_mock_game_search(self, query: str, limit: int) -> List[Dict[str, Any]]:
         """Mock fallback for game search."""

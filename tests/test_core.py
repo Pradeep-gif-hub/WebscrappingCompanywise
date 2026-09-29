@@ -140,3 +140,45 @@ def test_base_scraper_context_manager():
         assert scraper.session is not None
         headers = scraper._get_random_headers()
         assert "User-Agent" in headers
+
+
+def test_extract_dom_metadata():
+    from scrapers.core.utils import extract_dom_metadata, extract_json_ld, tables_from_soup
+    html = """
+    <html>
+        <head>
+            <title>Test Portal</title>
+            <meta name="description" content="Test description" />
+            <script type="application/ld+json">
+                {"@context": "https://schema.org", "@type": "Organization", "name": "TestOrg"}
+            </script>
+        </head>
+        <body>
+            <h1>Main Title</h1>
+            <h2>Subtitle 1</h2>
+            <a href="https://example.com/jobs">Jobs</a>
+            <img src="logo.png" />
+            <table>
+                <tr><th>Metric</th><th>Value</th></tr>
+                <tr><td>Users</td><td>1M</td></tr>
+            </table>
+        </body>
+    </html>
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    meta = extract_dom_metadata(soup)
+    assert meta["title"] == "Test Portal"
+    assert meta["meta_tags"]["description"] == "Test description"
+    assert "Main Title" in meta["headings"]["h1"]
+    assert meta["total_links"] == 1
+    assert meta["total_tables"] == 1
+
+    json_ld = extract_json_ld(soup)
+    assert len(json_ld) == 1
+    assert json_ld[0]["name"] == "TestOrg"
+
+    dfs = tables_from_soup(soup)
+    assert len(dfs) == 1
+    assert isinstance(dfs[0], pd.DataFrame)
+    assert dfs[0].iloc[0]["Metric"] == "Users"
+

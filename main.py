@@ -155,6 +155,20 @@ def handle_internships(args, storage: DataStorage):
         print(f"   📁 JSON Export:   {res['json_path']}")
         print(f"   📁 CSV Export:    {res['csv_path']}")
         print(f"   🗄️ SQLite DB:     {res['db_path']}")
+    elif getattr(args, "df", False):
+        df = scraper.to_dataframe(
+            category=args.category if args.category != "all" else None,
+            role=args.role,
+            location=args.location,
+            search=args.search,
+        )
+        print(f"\n📊 [Pandas DataFrame] ({len(df)} companies matched):")
+        cols_to_show = ["Company", "Category", "Stipend", "Roles", "Locations"]
+        print(df[cols_to_show].head(15).to_string(index=False))
+    elif getattr(args, "stats", False):
+        stats_df = scraper.analyze_sector_distribution()
+        print(f"\n📊 [Sector Breakdown & Statistics]:")
+        print(stats_df.to_string(index=False))
     else:
         results = scraper.filter_internships(
             category=args.category if args.category != "all" else None,
@@ -168,7 +182,49 @@ def handle_internships(args, storage: DataStorage):
             print(f"     Roles: {', '.join(c['roles_offered'][:3])}")
             print(f"     Careers Portal: {c['careers_url']}")
         if len(results) > 6:
-            print(f"   ... and {len(results) - 6} more companies. (Run with --export to save full dataset to CSV/JSON/SQLite)")
+            print(f"   ... and {len(results) - 6} more companies. (Run with --df for table view or --export to save)")
+
+
+def handle_dom_inspect(args, storage: DataStorage):
+    from bs4 import BeautifulSoup
+    from scrapers.core.base_scraper import BaseScraper
+    from scrapers.core.utils import extract_dom_metadata, extract_json_ld, tables_from_soup
+    
+    url = args.url
+    if not url.startswith("http"):
+        url = "https://" + url
+        
+    print(f"\n[🔍 DOM STRUCTURE INSPECTOR] Fetching URL with Requests & BeautifulSoup: {url}...")
+    scraper = BaseScraper()
+    soup = scraper.get_soup(url)
+    dom_meta = extract_dom_metadata(soup)
+    json_ld = extract_json_ld(soup)
+    dfs = tables_from_soup(soup)
+    
+    print("\n" + "="*70)
+    print(f"📄 DOM Page Title: {dom_meta.get('title')}")
+    print(f"📊 DOM Element Count: {dom_meta.get('total_dom_elements')} elements")
+    print(f"🔗 Links (<a>): {dom_meta.get('total_links')} | 🖼️ Images (<img>): {dom_meta.get('total_images')}")
+    print(f"📜 Scripts (<script>): {dom_meta.get('total_scripts')} | 🗂️ Tables (<table>): {dom_meta.get('total_tables')}")
+    print("="*70)
+    
+    print("\n📌 Heading Hierarchy:")
+    for h_tag, h_list in dom_meta.get("headings", {}).items():
+        if h_list:
+            print(f"  <{h_tag}> ({len(h_list)} found): {', '.join(h_list[:3])}...")
+            
+    if json_ld:
+        print(f"\n📦 Schema.org JSON-LD Entities ({len(json_ld)} discovered):")
+        for ent in json_ld[:2]:
+            print(f"  • Type: {ent.get('@type', 'Entity')} | Context: {ent.get('@context', 'schema.org')}")
+            
+    if dfs:
+        print(f"\n📊 Extracted HTML Tables to Pandas DataFrames ({len(dfs)} tables):")
+        for idx, tdf in enumerate(dfs[:2], 1):
+            print(f"\n--- Table #{idx} (Shape: {tdf.shape}) ---")
+            print(tdf.head(4).to_string())
+    print()
+
 
 
 def run_demo_all():
@@ -238,9 +294,10 @@ def interactive_menu():
         print("  [6] 🎓 Batch 2028 Tech Internships Intelligence (365+ Companies)")
         print("  [7] 🚀 Run All Scrapers (Full Demo)")
         print("  [8] 🗄️ Inspect SQLite Database Records")
+        print("  [9] 🔍 Inspect Webpage DOM Structure (Requests + BeautifulSoup)")
         print("  [0] 🚪 Exit")
         
-        choice = input("\nEnter choice [0-8]: ").strip()
+        choice = input("\nEnter choice [0-9]: ").strip()
         
         if choice == "1":
             comp = input("Enter company name (default: Stripe): ").strip() or "Stripe"
@@ -293,6 +350,13 @@ def interactive_menu():
                     print(f"   • Table '{table}': {cnt} records")
                 except Exception as e:
                     print(f"   • Table '{table}': not initialized yet ({e})")
+
+        elif choice == "9":
+            url_in = input("Enter URL to inspect (default: https://careers.google.com): ").strip() or "https://careers.google.com"
+            class DummyArgs:
+                url = url_in
+            handle_dom_inspect(DummyArgs(), storage)
+
                     
         elif choice in ["0", "q", "exit"]:
             print("\nGoodbye! Happy scraping! 🌐\n")
@@ -350,7 +414,13 @@ def main():
     intern_parser.add_argument("--role", "-r", default=None, help="Role filter (e.g. 'SDE', 'AI', 'Full Stack', 'DevOps', 'Cybersecurity')")
     intern_parser.add_argument("--location", "-loc", default=None, help="Location filter (e.g. 'Bangalore', 'Hyderabad', 'Pune', 'Gurgaon', 'Remote')")
     intern_parser.add_argument("--search", "-s", default=None, help="Search company name or tech keyword")
+    intern_parser.add_argument("--df", action="store_true", help="Display results as a Pandas DataFrame table")
+    intern_parser.add_argument("--stats", action="store_true", help="Display sector breakdown and statistics using Pandas")
     intern_parser.add_argument("--export", "-e", action="store_true", help="Export full 365+ company dataset to CSV, JSON, and SQLite")
+
+    # 7. DOM Inspector Subcommand
+    dom_parser = subparsers.add_parser("dom", help="Inspect live webpage HTML DOM structure with Requests & BeautifulSoup")
+    dom_parser.add_argument("url", help="Target URL to inspect (e.g. 'https://careers.google.com' or 'https://stripe.com')")
     
     args = parser.parse_args()
     storage = DataStorage()
@@ -371,7 +441,10 @@ def main():
         handle_ecommerce(args, storage)
     elif args.command == "internships":
         handle_internships(args, storage)
+    elif args.command == "dom":
+        handle_dom_inspect(args, storage)
     else:
+
         parser.print_help()
 
 

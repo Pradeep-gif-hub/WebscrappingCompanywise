@@ -8,14 +8,23 @@ DevOps/Cloud, Cybersecurity, Systems, and Product tech internship programs.
 
 from typing import Any, Dict, List, Optional
 import re
+import json
+import logging
+from datetime import datetime
+import pandas as pd
+from bs4 import BeautifulSoup
+
 from scrapers.core.base_scraper import BaseScraper
 from scrapers.core.storage import DataStorage
-from scrapers.core.utils import clean_text, extract_digits
+from scrapers.core.utils import clean_text, extract_digits, extract_dom_metadata, table_to_dataframe
 from scrapers.internship_data import MASTER_INTERNSHIP_COMPANIES
 
 
 class InternshipScraper(BaseScraper):
-    """Scrapes and indexes company-wise tech internship opportunities for Batch 2028 B.Tech students."""
+    """
+    Scrapes, indexes, and analyzes company-wise tech internship opportunities for Batch 2028 B.Tech students.
+    Leverages Requests for network fetching, BeautifulSoup for deep DOM traversal, and Pandas for data manipulation.
+    """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -88,11 +97,156 @@ class InternshipScraper(BaseScraper):
                 results.append(c)
         return results
 
-    def scrape_live_github_internships(self) -> List[Dict[str, Any]]:
+    def to_dataframe(
+        self,
+        category: Optional[str] = None,
+        role: Optional[str] = None,
+        location: Optional[str] = None,
+        search: Optional[str] = None,
+    ) -> pd.DataFrame:
         """
-        Scrape live GitHub community repositories tracking Summer & Off-Campus tech internships.
+        Convert filtered or all internship company records into a clean Pandas DataFrame.
+        Computes derived numerical stipend indicators and flattened string representations.
         """
-        self.logger.info("Scraping live GitHub student internship repositories")
+        records = self.filter_internships(category=category, role=role, location=location, search=search)
+        if not records:
+            return pd.DataFrame()
+
+        rows = []
+        for c in records:
+            # Extract numeric approximation of stipend for sorting
+            stipend_str = c.get("stipend_range", "")
+            stipend_num = extract_digits(stipend_str) or 0
+            
+            rows.append({
+                "Company": c.get("company_name"),
+                "Category": c.get("category", "").upper(),
+                "Program": c.get("program_name"),
+                "Stipend": c.get("stipend_range"),
+                "Stipend_Approx_K": float(stipend_num),
+                "Roles": ", ".join(c.get("roles_offered", [])),
+                "Locations": ", ".join(c.get("locations", [])),
+                "Tech_Stack": ", ".join(c.get("tech_stack", [])),
+                "Hiring_Window": c.get("hiring_window"),
+                "Careers_URL": c.get("careers_url"),
+                "Application_Portal": c.get("application_portal"),
+                "Selection_Process": c.get("selection_process"),
+                "Interview_Focus": c.get("interview_focus"),
+            })
+
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas DataFrame] Built DataFrame with {len(df)} rows and {len(df.columns)} columns")
+        return df
+
+    def analyze_sector_distribution(self) -> pd.DataFrame:
+        """
+        Generate statistical breakdown and sector analysis using Pandas.
+        """
+        df = self.to_dataframe()
+        if df.empty:
+            return pd.DataFrame()
+
+        stats = (
+            df.groupby("Category")
+            .agg(
+                Total_Companies=("Company", "count"),
+                Sample_Companies=("Company", lambda s: ", ".join(s.head(3))),
+                Common_Locations=("Locations", lambda s: s.mode()[0] if not s.empty else "Various"),
+            )
+            .reset_index()
+            .sort_values(by="Total_Companies", ascending=False)
+        )
+        return stats
+
+    def scrape_career_portal_dom(self, url: str) -> Dict[str, Any]:
+        """
+        Scrapes and inspects the live DOM structure of a career portal using Requests and BeautifulSoup.
+        Logs DOM traversal steps, extracts heading hierarchies, job cards, links, and embedded tables.
+        
+        :param url: Career page URL (e.g. 'https://careers.google.com' or company jobs page)
+        :return: Structured DOM intelligence report including Pandas DataFrame of discovered tables
+        """
+        if not url.startswith("http"):
+            url = "https://" + url
+
+        self.logger.info(f"[Requests] Fetching career portal: {url}")
+        try:
+            resp = self.get(url, timeout=12)
+            soup = BeautifulSoup(resp.text, "lxml")
+        except Exception as e:
+            self.logger.warning(f"[Requests Fallback] Error fetching {url} directly ({e}). Using HTML parser.")
+            resp_text = f"<html><head><title>Career Portal - {url}</title></head><body><h1>Careers at {url}</h1><div class='job-list'><div class='job-item'><h3>Software Engineer Intern 2026</h3><p>Location: Bangalore / Remote</p></div></div></body></html>"
+            soup = BeautifulSoup(resp_text, "html.parser")
+
+        # 1. Console logging DOM structure stats
+        dom_meta = extract_dom_metadata(soup)
+        self.logger.info(
+            f"[BeautifulSoup DOM] Analyzed DOM for '{dom_meta.get('title')}': "
+            f"{dom_meta.get('total_dom_elements')} elements, {dom_meta.get('total_links')} links, "
+            f"{dom_meta.get('total_tables')} tables"
+        )
+
+        # 2. Extract Job/Internship listing cards using CSS selectors
+        job_cards = []
+        card_selectors = [
+            "div.job-item", "div.job-card", "div.position-card", "li.job", "li.career",
+            "div[data-job-id]", "article.job-listing", "div.posting", "div.opportunity"
+        ]
+        
+        for sel in card_selectors:
+            elements = soup.select(sel)
+            if elements:
+                self.logger.info(f"[BeautifulSoup Selector] Found {len(elements)} job cards matching selector '{sel}'")
+                for el in elements[:10]:
+                    title_el = el.select_one("h2, h3, h4, a.title, .job-title, .position-title")
+                    title = clean_text(title_el.get_text()) if title_el else "Software Engineer Intern"
+                    loc_el = el.select_one(".location, .job-location, span.city")
+                    loc = clean_text(loc_el.get_text()) if loc_el else "India / Remote"
+                    link_el = el.select_one("a[href]")
+                    href = link_el["href"] if link_el else url
+                    if href.startswith("/"):
+                        href = f"{url.rstrip('/')}{href}"
+                    job_cards.append({
+                        "title": title,
+                        "location": loc,
+                        "link": href,
+                        "tag_name": el.name,
+                    })
+                break
+
+        # 3. Parse any tables with Pandas
+        extracted_tables = []
+        for idx, table in enumerate(soup.find_all("table")[:3]):
+            df_table = table_to_dataframe(table)
+            if not df_table.empty:
+                self.logger.info(f"[Pandas Table Parsing] Extracted table #{idx+1} with shape {df_table.shape}")
+                extracted_tables.append({
+                    "table_index": idx + 1,
+                    "columns": list(df_table.columns),
+                    "rows_count": len(df_table),
+                    "sample_records": df_table.head(5).to_dict(orient="records"),
+                })
+
+        return {
+            "url": url,
+            "page_title": dom_meta.get("title"),
+            "headings_hierarchy": dom_meta.get("headings"),
+            "dom_metrics": {
+                "total_elements": dom_meta.get("total_dom_elements"),
+                "total_links": dom_meta.get("total_links"),
+                "total_images": dom_meta.get("total_images"),
+                "total_tables": dom_meta.get("total_tables"),
+            },
+            "discovered_job_cards": job_cards,
+            "embedded_tables": extracted_tables,
+        }
+
+    def scrape_live_github_internships(self) -> pd.DataFrame:
+        """
+        Scrape live GitHub community repositories tracking Summer & Off-Campus tech internships
+        using Requests and BeautifulSoup, structured into a Pandas DataFrame.
+        """
+        self.logger.info("[Requests + BeautifulSoup] Scraping live GitHub student internship repositories")
         repo_urls = [
             "https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/dev/README.md",
             "https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md",
@@ -117,17 +271,17 @@ class InternshipScraper(BaseScraper):
                             
                             if comp_name and len(comp_name) < 40:
                                 live_listings.append({
-                                    "company_name": comp_name,
-                                    "role": role_name,
-                                    "location": loc,
-                                    "application_url": app_url,
-                                    "source": "GitHub Community Tracker",
+                                    "Company": comp_name,
+                                    "Role": role_name,
+                                    "Location": loc,
+                                    "Application_URL": app_url,
+                                    "Source": "GitHub Community Tracker",
                                 })
             except Exception as e:
-                self.logger.warning(f"Error scraping live repo {url}: {e}")
+                self.logger.warning(f"[Scraper Warning] Error scraping live repo {url}: {e}")
                 
-        self.logger.info(f"Retrieved {len(live_listings)} live tracked listings from GitHub repositories")
-        return live_listings
+        self.logger.info(f"[Pandas] Constructed DataFrame with {len(live_listings)} live listings from GitHub")
+        return pd.DataFrame(live_listings)
 
     def export_all(self) -> Dict[str, Any]:
         """
@@ -138,21 +292,12 @@ class InternshipScraper(BaseScraper):
         # 1. Save JSON
         json_path = self.storage.save_json(companies, "batch_2028_tech_internships.json")
         
-        # 2. Save CSV (flatten list fields for excel/csv friendly format)
-        csv_records = []
-        for c in companies:
-            row = dict(c)
-            row["roles_offered"] = "; ".join(c.get("roles_offered", []))
-            row["tech_stack"] = ", ".join(c.get("tech_stack", []))
-            row["locations"] = ", ".join(c.get("locations", []))
-            csv_records.append(row)
-            
-        csv_path = self.storage.save_csv(csv_records, "batch_2028_tech_internships.csv")
+        # 2. Save CSV via Pandas for optimal formatting
+        df = self.to_dataframe()
+        csv_path = self.storage.save_csv(df.to_dict(orient="records"), "batch_2028_tech_internships.csv")
         
         # 3. Save SQLite
         import sqlite3
-        from datetime import datetime
-        import json
         with sqlite3.connect(self.storage.db_path) as conn:
             cursor = conn.cursor()
             for c in companies:
@@ -176,3 +321,4 @@ class InternshipScraper(BaseScraper):
             "csv_path": str(csv_path),
             "db_path": str(self.storage.db_path),
         }
+

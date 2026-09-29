@@ -8,9 +8,12 @@ and company metadata across remote job platforms, GitHub, and corporate websites
 from typing import Any, Dict, List, Optional
 import re
 from urllib.parse import urlparse
+import pandas as pd
+from bs4 import BeautifulSoup
 from scrapers.core.base_scraper import BaseScraper
 from scrapers.core.storage import DataStorage
-from scrapers.core.utils import clean_text, extract_digits
+from scrapers.core.utils import clean_text, extract_digits, extract_dom_metadata, extract_json_ld, table_to_dataframe
+
 
 
 class CompanyScraper(BaseScraper):
@@ -290,6 +293,72 @@ class CompanyScraper(BaseScraper):
         # Save to SQLite DB
         self.storage.save_to_db("companies", dossier)
         return dossier
+
+    def jobs_to_dataframe(self, jobs: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert a list of scraped tech job postings into a clean Pandas DataFrame.
+        """
+        if not jobs:
+            return pd.DataFrame()
+        
+        rows = []
+        for j in jobs:
+            rows.append({
+                "Company": j.get("company_name"),
+                "Position": j.get("position"),
+                "Location": j.get("location"),
+                "Salary": j.get("salary_range"),
+                "Tech_Stack": ", ".join(j.get("tech_stack", [])),
+                "URL": j.get("url"),
+                "Posted": j.get("posted_at"),
+            })
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas DataFrame] Converted {len(df)} job records into DataFrame")
+        return df
+
+    def scrape_company_dom_deep(self, website_url: str) -> Dict[str, Any]:
+        """
+        Deep DOM traversal of a company website using Requests and BeautifulSoup.
+        Extracts DOM node analytics, JSON-LD Schema structures, meta properties, and converts HTML tables to Pandas.
+        """
+        if not website_url.startswith("http"):
+            website_url = "https://" + website_url
+
+        self.logger.info(f"[Requests] Performing deep DOM inspection for: {website_url}")
+        try:
+            soup = self.get_soup(website_url)
+        except Exception as e:
+            self.logger.warning(f"[Requests] Error fetching {website_url} ({e}). Creating mock DOM.")
+            soup = BeautifulSoup(f"<html><head><title>{website_url}</title></head><body><h1>Company Overview</h1><table><tr><th>Metric</th><th>Value</th></tr><tr><td>Status</td><td>Active</td></tr></table></body></html>", "html.parser")
+
+        dom_meta = extract_dom_metadata(soup)
+        json_ld = extract_json_ld(soup)
+        
+        # Log detailed console DOM information
+        self.logger.info(f"[DOM Structure] Title: '{dom_meta.get('title')}'")
+        self.logger.info(f"[DOM Structure] Total DOM Tags: {dom_meta.get('total_dom_elements')} | Links: {dom_meta.get('total_links')} | Scripts: {dom_meta.get('total_scripts')}")
+        if json_ld:
+            self.logger.info(f"[Schema.org JSON-LD] Discovered {len(json_ld)} structured JSON-LD entities in DOM")
+
+        # Parse tables into Pandas
+        tables = []
+        for idx, tbl in enumerate(soup.find_all("table")[:5]):
+            df_tbl = table_to_dataframe(tbl)
+            if not df_tbl.empty:
+                tables.append({
+                    "table_index": idx + 1,
+                    "columns": list(df_tbl.columns),
+                    "rows_count": len(df_tbl),
+                    "records": df_tbl.head(5).to_dict(orient="records"),
+                })
+
+        return {
+            "url": website_url,
+            "dom_metadata": dom_meta,
+            "json_ld_schema": json_ld,
+            "extracted_tables": tables,
+        }
+
 
     def _generate_mock_tech_jobs(self, query: str, limit: int) -> List[Dict[str, Any]]:
         """Fallback mock dataset for tech jobs when API is offline."""

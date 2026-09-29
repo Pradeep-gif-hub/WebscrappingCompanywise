@@ -1,11 +1,12 @@
 # 🌐 WebscrappingCompanywise — Universal Web Scraping Intelligence Suite
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
-[![Pytest](https://img.shields.io/badge/Tests-32%20Passed%20(100%25)-success.svg)](file:///Users/pawasthi/webscraping-env/tests)
-[![Internships Database](https://img.shields.io/badge/Batch%202028%20Internships-365%2B%20Companies-blueviolet.svg)](#6-batch-2028-tech-internship-scraper)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular%20%26%20Extensible-orange.svg)](#architecture)
+[![Pytest](https://img.shields.io/badge/Tests-36%20Passed%20(100%25)-success.svg)](file:///Users/pawasthi/webscraping-env/tests)
+[![Internships Database](https://img.shields.io/badge/Batch%202028%20Internships-365%2B%20Companies-blueviolet.svg)](#1-batch-2028-tech-internship-scraper)
+[![Architecture](https://img.shields.io/badge/Architecture-Requests%20%7C%20BS4%20%7C%20Pandas-orange.svg)](#architecture)
 [![Export Formats](https://img.shields.io/badge/Export-JSON%20%7C%20CSV%20%7C%20SQLite%20%7C%20Pandas-purple.svg)](#data-persistence--exports)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
+
 
 A modular, resilient, production-ready Python web scraping and intelligence toolkit. Built to scrape, structure, and export data across **6 specialized tech domains** plus large-scale company analysis:
 
@@ -438,42 +439,46 @@ pytest tests/test_internship_scraper.py
 ### Test Results
 ```text
 ============================= test session starts ==============================
-collected 32 items
+collected 36 items
 
-tests/test_company_scraper.py::test_scrape_company_jobs PASSED           [  3%]
-tests/test_company_scraper.py::test_scrape_github_org PASSED             [  6%]
-tests/test_company_scraper.py::test_scrape_company_website_meta PASSED   [  9%]
-tests/test_company_scraper.py::test_build_company_dossier PASSED         [ 12%]
-tests/test_core.py::test_clean_text PASSED                               [ 15%]
-tests/test_core.py::test_extract_digits PASSED                           [ 18%]
-tests/test_core.py::test_parse_price PASSED                              [ 21%]
-tests/test_core.py::test_parse_rating PASSED                             [ 25%]
-tests/test_core.py::test_slugify PASSED                                  [ 28%]
-tests/test_core.py::test_table_to_dataframe PASSED                       [ 31%]
-tests/test_core.py::test_format_bytes PASSED                             [ 34%]
-tests/test_core.py::test_storage_json_and_csv PASSED                     [ 37%]
-tests/test_core.py::test_storage_sqlite_crud PASSED                      [ 40%]
-tests/test_core.py::test_base_scraper_context_manager PASSED             [ 43%]
-tests/test_ecommerce_scraper.py::test_scrape_categories PASSED           [ 46%]
-tests/test_ecommerce_scraper.py::test_scrape_category_products PASSED    [ 50%]
-tests/test_ecommerce_scraper.py::test_scrape_product_details PASSED      [ 53%]
-tests/test_game_scraper.py::test_search_steam_games PASSED               [ 56%]
-tests/test_game_scraper.py::test_scrape_game_details_steam_api PASSED    [ 59%]
-tests/test_game_scraper.py::test_scrape_top_free_games PASSED            [ 62%]
-tests/test_internship_scraper.py::test_get_all_internships_count PASSED [ 65%]
-tests/test_internship_scraper.py::test_filter_by_category PASSED         [ 68%]
-tests/test_internship_scraper.py::test_filter_by_role PASSED             [ 71%]
-tests/test_internship_scraper.py::test_filter_by_location PASSED         [ 75%]
-tests/test_internship_scraper.py::test_filter_by_keyword_search PASSED   [ 78%]
-tests/test_internship_scraper.py::test_export_all_internships PASSED     [ 81%]
-tests/test_restaurant_scraper.py::test_search_restaurants PASSED         [ 84%]
-tests/test_restaurant_scraper.py::test_scrape_restaurant_details_and_menu PASSED [ 87%]
-tests/test_restaurant_scraper.py::test_restaurant_dietary_options PASSED [ 90%]
-tests/test_wikipedia_scraper.py::test_wikipedia_search PASSED            [ 93%]
-tests/test_wikipedia_scraper.py::test_scrape_wikipedia_article_details PASSED [ 96%]
+tests/test_company_scraper.py::test_scrape_company_jobs PASSED           [  2%]
+tests/test_company_scraper.py::test_scrape_github_org PASSED             [  5%]
+tests/test_company_scraper.py::test_scrape_company_website_meta PASSED   [  8%]
+tests/test_company_scraper.py::test_build_company_dossier PASSED         [ 11%]
+tests/test_core.py::test_clean_text PASSED                               [ 13%]
+tests/test_core.py::test_extract_digits PASSED                           [ 16%]
+tests/test_core.py::test_parse_price PASSED                              [ 19%]
+tests/test_core.py::test_parse_rating PASSED                             [ 22%]
+tests/test_core.py::test_slugify PASSED                                  [ 25%]
+tests/test_core.py::test_table_to_dataframe PASSED                       [ 27%]
+tests/test_core.py::test_format_bytes PASSED                             [ 30%]
+tests/test_core.py::test_storage_json_and_csv PASSED                     [ 33%]
+tests/test_core.py::test_storage_sqlite_crud PASSED                      [ 36%]
+tests/test_core.py::test_base_scraper_context_manager PASSED             [ 38%]
+tests/test_core.py::test_extract_dom_metadata PASSED                     [ 41%]
+tests/test_ecommerce_scraper.py::test_scrape_categories PASSED           [ 44%]
+tests/test_ecommerce_scraper.py::test_scrape_category_products PASSED    [ 47%]
+tests/test_ecommerce_scraper.py::test_scrape_product_details PASSED      [ 50%]
+tests/test_game_scraper.py::test_search_steam_games PASSED               [ 52%]
+tests/test_game_scraper.py::test_scrape_game_details_steam_api PASSED    [ 55%]
+tests/test_game_scraper.py::test_scrape_top_free_games PASSED            [ 58%]
+tests/test_internship_scraper.py::test_get_all_companies PASSED          [ 61%]
+tests/test_internship_scraper.py::test_filter_by_category PASSED         [ 63%]
+tests/test_internship_scraper.py::test_filter_by_role PASSED             [ 66%]
+tests/test_internship_scraper.py::test_filter_by_location PASSED         [ 69%]
+tests/test_internship_scraper.py::test_search_internships PASSED         [ 72%]
+tests/test_internship_scraper.py::test_export_all_internships PASSED     [ 75%]
+tests/test_internship_scraper.py::test_to_dataframe PASSED               [ 77%]
+tests/test_internship_scraper.py::test_analyze_sector_distribution PASSED [ 80%]
+tests/test_internship_scraper.py::test_scrape_career_portal_dom PASSED   [ 83%]
+tests/test_restaurant_scraper.py::test_search_restaurants PASSED         [ 86%]
+tests/test_restaurant_scraper.py::test_scrape_restaurant_details_and_menu PASSED [ 88%]
+tests/test_restaurant_scraper.py::test_restaurant_dietary_options PASSED [ 91%]
+tests/test_wikipedia_scraper.py::test_wikipedia_search PASSED            [ 94%]
+tests/test_wikipedia_scraper.py::test_scrape_wikipedia_article_details PASSED [ 97%]
 tests/test_wikipedia_scraper.py::test_scrape_random_article PASSED       [100%]
 
-============================= 32 passed in 17.91s ==============================
+============================= 36 passed in 23.63s ==============================
 ```
 
 ---

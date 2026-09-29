@@ -7,9 +7,12 @@ UPC barcodes, categories, and reviews from e-commerce platforms.
 
 from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
+import pandas as pd
+from bs4 import BeautifulSoup
 from scrapers.core.base_scraper import BaseScraper
 from scrapers.core.storage import DataStorage
-from scrapers.core.utils import clean_text, extract_digits, parse_price, parse_rating
+from scrapers.core.utils import clean_text, extract_digits, parse_price, parse_rating, extract_dom_metadata, table_to_dataframe
+
 
 
 class EcommerceScraper(BaseScraper):
@@ -231,6 +234,57 @@ class EcommerceScraper(BaseScraper):
                 "description": "Epic science fiction masterpiece set on the desert planet Arrakis.",
                 "url": product_url,
             }
+
+    def products_to_dataframe(self, products: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert scraped e-commerce products into a clean Pandas DataFrame for analytical exploration.
+        """
+        if not products:
+            return pd.DataFrame()
+            
+        rows = []
+        for p in products:
+            p_dict = p.get("price", {})
+            amt = p_dict.get("amount", 0.0) if isinstance(p_dict, dict) else 0.0
+            cur = p_dict.get("currency", "GBP") if isinstance(p_dict, dict) else "GBP"
+            
+            rows.append({
+                "Title": p.get("title"),
+                "Category": p.get("category"),
+                "Price": amt,
+                "Currency": cur,
+                "Rating": float(p.get("rating", 0.0)),
+                "Availability": p.get("availability"),
+                "URL": p.get("url"),
+            })
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas] Created Products DataFrame with {len(df)} items")
+        return df
+
+    def scrape_catalog_dom(self, category_url: str) -> Dict[str, Any]:
+        """
+        Deep inspection of product catalog HTML DOM structure using Requests and BeautifulSoup.
+        """
+        self.logger.info(f"[Requests] Scraping catalog DOM: {category_url}")
+        try:
+            soup = self.get_soup(category_url)
+        except Exception as e:
+            self.logger.warning(f"Error fetching catalog ({e}). Creating mock DOM.")
+            soup = BeautifulSoup(f"<html><head><title>Catalog</title></head><body><h1>Products</h1><article class='product_pod'><h3><a href='#'>Book Title</a></h3></article></body></html>", "html.parser")
+            
+        dom_meta = extract_dom_metadata(soup)
+        self.logger.info(f"[BeautifulSoup DOM] Catalog DOM: {dom_meta.get('total_dom_elements')} elements, {dom_meta.get('total_links')} links")
+        
+        # Product cards count via CSS selector
+        product_pods = soup.select("article.product_pod")
+        self.logger.info(f"[BeautifulSoup Selector] Found {len(product_pods)} product pods in DOM")
+        
+        return {
+            "url": category_url,
+            "dom_metadata": dom_meta,
+            "product_pods_count": len(product_pods),
+        }
+
 
     def _mock_categories(self) -> List[Dict[str, str]]:
         """Mock categories list."""

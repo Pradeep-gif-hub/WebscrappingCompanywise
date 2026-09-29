@@ -169,3 +169,81 @@ def format_bytes(size: int) -> str:
             return f"{size:3.1f} {unit}"
         size /= 1024.0
     return f"{size:.1f} TB"
+
+
+def extract_dom_metadata(soup: BeautifulSoup) -> Dict[str, Any]:
+    """
+    Extract comprehensive DOM tree analytics, heading hierarchy, meta tags, and link metrics.
+    """
+    if not soup:
+        return {}
+        
+    title_tag = soup.find("title")
+    title = clean_text(title_tag.get_text()) if title_tag else ""
+    
+    # Meta tags extraction
+    meta_tags = {}
+    for meta in soup.find_all("meta"):
+        name = meta.get("name") or meta.get("property") or meta.get("http-equiv")
+        content = meta.get("content")
+        if name and content:
+            meta_tags[name] = clean_text(content)
+            
+    # Heading hierarchy
+    headings = {
+        "h1": [clean_text(h.get_text()) for h in soup.find_all("h1") if clean_text(h.get_text())],
+        "h2": [clean_text(h.get_text()) for h in soup.find_all("h2") if clean_text(h.get_text())][:10],
+        "h3": [clean_text(h.get_text()) for h in soup.find_all("h3") if clean_text(h.get_text())][:10],
+    }
+    
+    # Links & Images counts
+    links = soup.find_all("a", href=True)
+    images = soup.find_all("img")
+    scripts = soup.find_all("script")
+    tables = soup.find_all("table")
+    
+    return {
+        "title": title,
+        "meta_tags": meta_tags,
+        "headings": headings,
+        "total_dom_elements": len(soup.find_all(True)),
+        "total_links": len(links),
+        "total_images": len(images),
+        "total_scripts": len(scripts),
+        "total_tables": len(tables),
+    }
+
+
+def extract_json_ld(soup: BeautifulSoup) -> List[Dict[str, Any]]:
+    """Extract Schema.org JSON-LD structured data blocks from the DOM."""
+    import json
+    json_ld_blocks = []
+    if not soup:
+        return json_ld_blocks
+        
+    for script in soup.find_all("script", type="application/ld+json"):
+        content = script.string or script.get_text()
+        if content:
+            try:
+                parsed = json.loads(content)
+                if isinstance(parsed, list):
+                    json_ld_blocks.extend(parsed)
+                elif isinstance(parsed, dict):
+                    json_ld_blocks.append(parsed)
+            except Exception:
+                continue
+    return json_ld_blocks
+
+
+def tables_from_soup(soup: BeautifulSoup) -> List[pd.DataFrame]:
+    """Parse all HTML tables within a BeautifulSoup DOM into a list of Pandas DataFrames."""
+    if not soup:
+        return []
+    tables = soup.find_all("table")
+    dfs = []
+    for tbl in tables:
+        df = table_to_dataframe(tbl)
+        if not df.empty:
+            dfs.append(df)
+    return dfs
+

@@ -61,3 +61,30 @@ def test_export_all_internships(internship_scraper, tmp_path):
     assert os.path.exists(res["json_path"])
     assert os.path.exists(res["csv_path"])
     assert os.path.exists(res["db_path"])
+
+
+def test_to_dataframe(internship_scraper):
+    import pandas as pd
+    df = internship_scraper.to_dataframe()
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) >= 350
+    assert "Company" in df.columns
+    assert "Category" in df.columns
+    assert "Stipend" in df.columns
+    assert "Roles" in df.columns
+
+
+def test_analyze_sector_distribution(internship_scraper):
+    stats = internship_scraper.analyze_sector_distribution()
+    assert not stats.empty
+    assert "Category" in stats.columns
+    assert "Total_Companies" in stats.columns
+    assert stats["Total_Companies"].sum() >= 350
+
+
+def test_scrape_career_portal_dom(internship_scraper):
+    dom_report = internship_scraper.scrape_career_portal_dom("https://careers.google.com")
+    assert "page_title" in dom_report
+    assert "dom_metrics" in dom_report
+    assert "headings_hierarchy" in dom_report
+

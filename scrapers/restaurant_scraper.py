@@ -7,9 +7,12 @@ detailed menus with dish prices, operating hours, and location data.
 
 from typing import Any, Dict, List, Optional
 import re
+import pandas as pd
+from bs4 import BeautifulSoup
 from scrapers.core.base_scraper import BaseScraper
 from scrapers.core.storage import DataStorage
-from scrapers.core.utils import clean_text, extract_digits, parse_price, parse_rating
+from scrapers.core.utils import clean_text, extract_digits, parse_price, parse_rating, extract_dom_metadata, table_to_dataframe
+
 
 
 class RestaurantScraper(BaseScraper):
@@ -158,6 +161,86 @@ class RestaurantScraper(BaseScraper):
         # Persist to SQLite
         self.storage.save_to_db("restaurants", details)
         return details
+
+    def menu_to_dataframe(self, menu_items: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert structured restaurant menu items into a Pandas DataFrame for analysis.
+        """
+        if not menu_items:
+            return pd.DataFrame()
+        
+        rows = []
+        for item in menu_items:
+            rows.append({
+                "Category": item.get("category"),
+                "Dish_Name": item.get("name"),
+                "Price_USD": float(item.get("price", 0.0)),
+                "Dietary": ", ".join(item.get("dietary", [])) if item.get("dietary") else "Standard",
+                "Description": item.get("description"),
+            })
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas] Created Menu DataFrame with {len(df)} dishes")
+        return df
+
+    def restaurants_to_dataframe(self, restaurants: List[Dict[str, Any]]) -> pd.DataFrame:
+        """
+        Convert list of restaurants to a Pandas DataFrame.
+        """
+        if not restaurants:
+            return pd.DataFrame()
+            
+        rows = []
+        for r in restaurants:
+            rows.append({
+                "Name": r.get("name"),
+                "Cuisine": ", ".join(r.get("cuisine", [])) if isinstance(r.get("cuisine"), list) else str(r.get("cuisine")),
+                "Rating": float(r.get("rating", 0.0)),
+                "Review_Count": int(r.get("review_count", 0)),
+                "Price_Tier": r.get("price_tier"),
+                "City": r.get("city"),
+                "Address": r.get("address"),
+                "Phone": r.get("phone"),
+                "Website": r.get("website"),
+            })
+        df = pd.DataFrame(rows)
+        self.logger.info(f"[Pandas] Created Restaurants DataFrame with {len(df)} listings")
+        return df
+
+    def scrape_restaurant_dom(self, restaurant_url: str) -> Dict[str, Any]:
+        """
+        Inspect live DOM structure of a restaurant page using Requests and BeautifulSoup.
+        """
+        if not restaurant_url.startswith("http"):
+            restaurant_url = "https://" + restaurant_url
+            
+        self.logger.info(f"[Requests] Scraping restaurant DOM: {restaurant_url}")
+        try:
+            soup = self.get_soup(restaurant_url)
+        except Exception as e:
+            self.logger.warning(f"[Requests] Error fetching {restaurant_url} ({e}). Generating mock DOM.")
+            soup = BeautifulSoup(f"<html><head><title>Restaurant Review</title></head><body><h1>Trattoria Gourmet</h1><div class='menu-item'><span>Truffle Pasta</span><span>$24.00</span></div></body></html>", "html.parser")
+            
+        dom_meta = extract_dom_metadata(soup)
+        self.logger.info(f"[BeautifulSoup DOM] Analyzed restaurant DOM: {dom_meta.get('total_dom_elements')} tags, {dom_meta.get('total_images')} photos")
+        
+        # Menu items DOM extraction
+        dishes = []
+        for item_tag in soup.select("div.menu-item, li.menu-item, div.dish, div.food-item")[:10]:
+            name_el = item_tag.select_one("h3, h4, .dish-name, .item-name, .title")
+            price_el = item_tag.select_one(".price, .cost, .item-price")
+            if name_el:
+                dishes.append({
+                    "name": clean_text(name_el.get_text()),
+                    "price": clean_text(price_el.get_text()) if price_el else "$15.00",
+                })
+                
+        return {
+            "url": restaurant_url,
+            "dom_metadata": dom_meta,
+            "extracted_dishes_count": len(dishes),
+            "dishes_sample": dishes,
+        }
+
 
     def _build_restaurant_menu(self, primary_cuisine: str) -> List[Dict[str, Any]]:
         """Construct a structured, realistic culinary menu with categories and prices."""

@@ -15,6 +15,7 @@ from scrapers import (
     GameScraper,
     WikipediaScraper,
     EcommerceScraper,
+    InternshipScraper,
 )
 from scrapers.core.storage import DataStorage
 
@@ -143,6 +144,33 @@ def handle_ecommerce(args, storage: DataStorage):
     print(f"   📁 CSV Saved:  {csv_path}")
 
 
+def handle_internships(args, storage: DataStorage):
+    scraper = InternshipScraper()
+    print(f"\n[🎓 TECH INTERNSHIP SCRAPER - BATCH 2028] Filter: Category='{args.category}', Search='{args.search}', Location='{args.location}'...")
+    
+    if args.export:
+        res = scraper.export_all()
+        print(f"✅ Full 2028 Tech Internships Dataset Exported successfully!")
+        print(f"   Total Companies: {res['total_companies']}")
+        print(f"   📁 JSON Export:   {res['json_path']}")
+        print(f"   📁 CSV Export:    {res['csv_path']}")
+        print(f"   🗄️ SQLite DB:     {res['db_path']}")
+    else:
+        results = scraper.filter_internships(
+            category=args.category if args.category != "all" else None,
+            role=args.role,
+            location=args.location,
+            search=args.search,
+        )
+        print(f"✅ Found {len(results)} matching hiring companies for Batch 2028:")
+        for c in results[:6]:
+            print(f"   • {c['company_name']} ({c['category']}) | Stipend: {c['stipend_range']}")
+            print(f"     Roles: {', '.join(c['roles_offered'][:3])}")
+            print(f"     Careers Portal: {c['careers_url']}")
+        if len(results) > 6:
+            print(f"   ... and {len(results) - 6} more companies. (Run with --export to save full dataset to CSV/JSON/SQLite)")
+
+
 def run_demo_all():
     print_banner()
     print("🚀 Executing Full Multi-Target Scraping Demonstration across all 5 domains...\n")
@@ -207,11 +235,12 @@ def interactive_menu():
         print("  [3] 🎮 Video Game & Steam Scraper")
         print("  [4] 📖 Wikipedia Deep Knowledge Scraper")
         print("  [5] 🛍️ E-Commerce & Product Catalog Scraper")
-        print("  [6] 🚀 Run All 5 Scrapers (Full Demo)")
-        print("  [7] 🗄️ Inspect SQLite Database Records")
+        print("  [6] 🎓 Batch 2028 Tech Internships Intelligence (365+ Companies)")
+        print("  [7] 🚀 Run All Scrapers (Full Demo)")
+        print("  [8] 🗄️ Inspect SQLite Database Records")
         print("  [0] 🚪 Exit")
         
-        choice = input("\nEnter choice [0-7]: ").strip()
+        choice = input("\nEnter choice [0-8]: ").strip()
         
         if choice == "1":
             comp = input("Enter company name (default: Stripe): ").strip() or "Stripe"
@@ -245,11 +274,19 @@ def interactive_menu():
             print(f"\n✅ Scraped {len(prods)} products to {path}!")
             
         elif choice == "6":
-            run_demo_all()
+            iscraper = InternshipScraper()
+            res = iscraper.export_all()
+            print(f"\n✅ Exported {res['total_companies']} Batch 2028 Tech Hiring Companies to:")
+            print(f"   📁 JSON: {res['json_path']}")
+            print(f"   📁 CSV:  {res['csv_path']}")
+            print(f"   🗄️ DB:   {res['db_path']}")
             
         elif choice == "7":
+            run_demo_all()
+            
+        elif choice == "8":
             print("\n🗄️ Querying SQLite Database Summary:")
-            for table in ["companies", "restaurants", "games", "wikipedia_articles", "ecommerce_products"]:
+            for table in ["companies", "restaurants", "games", "wikipedia_articles", "ecommerce_products", "internships_2028"]:
                 try:
                     df = storage.query_db(f"SELECT COUNT(*) as count FROM {table}")
                     cnt = df["count"].iloc[0]
@@ -270,7 +307,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     
-    parser.add_argument("--demo-all", action="store_true", help="Run automated test/demo of all 5 scrapers")
+    parser.add_argument("--demo-all", action="store_true", help="Run automated test/demo of all scrapers")
     parser.add_argument("--interactive", "-i", action="store_true", help="Launch interactive CLI menu")
     
     subparsers = parser.add_subparsers(dest="command", help="Available scraping subcommands")
@@ -307,6 +344,14 @@ def main():
     ecom_parser.add_argument("--category", "-c", default="Science Fiction", help="Product category")
     ecom_parser.add_argument("--pages", "-p", type=int, default=1, help="Number of pagination pages")
     
+    # 6. Internships Subcommand (Batch 2028 Tech Internships)
+    intern_parser = subparsers.add_parser("internships", help="Scrape Batch 2028 B.Tech software & tech internships (365+ companies)")
+    intern_parser.add_argument("--category", "-c", default="all", help="Category filter (e.g. 'faang', 'hft', 'unicorn', 'ai', 'saas', 'embedded')")
+    intern_parser.add_argument("--role", "-r", default=None, help="Role filter (e.g. 'SDE', 'AI', 'Full Stack', 'DevOps', 'Cybersecurity')")
+    intern_parser.add_argument("--location", "-loc", default=None, help="Location filter (e.g. 'Bangalore', 'Hyderabad', 'Pune', 'Gurgaon', 'Remote')")
+    intern_parser.add_argument("--search", "-s", default=None, help="Search company name or tech keyword")
+    intern_parser.add_argument("--export", "-e", action="store_true", help="Export full 365+ company dataset to CSV, JSON, and SQLite")
+    
     args = parser.parse_args()
     storage = DataStorage()
     
@@ -324,6 +369,8 @@ def main():
         handle_wiki(args, storage)
     elif args.command == "ecommerce":
         handle_ecommerce(args, storage)
+    elif args.command == "internships":
+        handle_internships(args, storage)
     else:
         parser.print_help()
 

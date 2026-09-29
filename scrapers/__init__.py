@@ -14,6 +14,7 @@ from scrapers.restaurant_scraper import RestaurantScraper
 from scrapers.game_scraper import GameScraper
 from scrapers.wikipedia_scraper import WikipediaScraper
 from scrapers.ecommerce_scraper import EcommerceScraper
+from scrapers.internship_scraper import InternshipScraper
 
 __all__ = [
     "CompanyScraper",
@@ -21,6 +22,7 @@ __all__ = [
     "GameScraper",
     "WikipediaScraper",
     "EcommerceScraper",
+    "InternshipScraper",
 ]
 
 __version__ = "1.0.0"

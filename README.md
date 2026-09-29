@@ -1,18 +1,20 @@
 # 🌐 WebscrappingCompanywise — Universal Web Scraping Intelligence Suite
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
-[![Pytest](https://img.shields.io/badge/Tests-26%20Passed%20(100%25)-success.svg)](file:///Users/pawasthi/webscraping-env/tests)
+[![Pytest](https://img.shields.io/badge/Tests-32%20Passed%20(100%25)-success.svg)](file:///Users/pawasthi/webscraping-env/tests)
+[![Internships Database](https://img.shields.io/badge/Batch%202028%20Internships-365%2B%20Companies-blueviolet.svg)](#6-batch-2028-tech-internship-scraper)
 [![Architecture](https://img.shields.io/badge/Architecture-Modular%20%26%20Extensible-orange.svg)](#architecture)
 [![Export Formats](https://img.shields.io/badge/Export-JSON%20%7C%20CSV%20%7C%20SQLite%20%7C%20Pandas-purple.svg)](#data-persistence--exports)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#license)
 
-A modular, resilient, production-ready Python web scraping and intelligence toolkit. Built to scrape, structure, and export data across **5 major domains** plus large-scale company analysis (including top MNC company datasets):
+A modular, resilient, production-ready Python web scraping and intelligence toolkit. Built to scrape, structure, and export data across **6 specialized tech domains** plus large-scale company analysis:
 
-1. 🏢 **Company & Tech Stack Intelligence** (corporate metadata, tech tags, job postings, GitHub orgs, AmbitionBox MNC analysis)
-2. 🍽️ **Restaurant & Culinary Intelligence** (directories, ratings, menus, dish prices, dietary tags, operating hours)
-3. 🎮 **Video Games & Steam Platform Insights** (Steam store metadata, hardware requirements, pricing, Metacritic scores, Free-to-play catalog)
-4. 📖 **Wikipedia Deep Knowledge Extraction** (infobox key-value pairs, summaries, outline sections, tables to Pandas DataFrames, references, categories)
-5. 🛍️ **E-Commerce & Product Intelligence** (product catalogs, pagination crawling, stock levels, star ratings, UPC codes, prices)
+1. 🎓 **Batch 2028 Tech Internship Intelligence** (365+ companies hiring B.Tech undergraduates for SDE, AI/ML, Quant, Cloud & Systems with verified career portals, stipends & test formats)
+2. 🏢 **Company & Tech Stack Intelligence** (corporate metadata, tech tags, job postings, GitHub orgs, AmbitionBox MNC analysis)
+3. 🍽️ **Restaurant & Culinary Intelligence** (directories, ratings, menus, dish prices, dietary tags, operating hours)
+4. 🎮 **Video Games & Steam Platform Insights** (Steam store metadata, hardware requirements, pricing, Metacritic scores, Free-to-play catalog)
+5. 📖 **Wikipedia Deep Knowledge Extraction** (infobox key-value pairs, summaries, outline sections, tables to Pandas DataFrames, references, categories)
+6. 🛍️ **E-Commerce & Product Intelligence** (product catalogs, pagination crawling, stock levels, star ratings, UPC codes, prices)
 
 ---
 
@@ -24,11 +26,12 @@ A modular, resilient, production-ready Python web scraping and intelligence tool
 - [Installation & Quickstart](#installation--quickstart)
 - [Command Line Interface (CLI)](#command-line-interface-cli)
 - [Scraper Deep-Dive & Python Usage](#scraper-deep-dive--python-usage)
-  - [1. Company Scraper](#1-company-scraper)
-  - [2. Restaurant Scraper](#2-restaurant-scraper)
-  - [3. Game & Steam Scraper](#3-game--steam-scraper)
-  - [4. Wikipedia Scraper](#4-wikipedia-scraper)
-  - [5. E-Commerce Scraper](#5-e-commerce-scraper)
+  - [1. Batch 2028 Tech Internship Scraper](#1-batch-2028-tech-internship-scraper)
+  - [2. Company Scraper](#2-company-scraper)
+  - [3. Restaurant Scraper](#3-restaurant-scraper)
+  - [4. Game & Steam Scraper](#4-game--steam-scraper)
+  - [5. Wikipedia Scraper](#5-wikipedia-scraper)
+  - [6. E-Commerce Scraper](#6-e-commerce-scraper)
 - [Core Utilities & Resilience Engine](#core-utilities--resilience-engine)
 - [Data Persistence & SQLite Storage](#data-persistence--exports)
 - [Interactive Jupyter Notebooks](#interactive-jupyter-notebooks)
@@ -164,7 +167,23 @@ python main.py
 
 ## 💻 Command Line Interface (CLI)
 
-The `main.py` CLI provides dedicated subcommands for each scraper domain:
+### 🎓 Batch 2028 Tech Internships Scraper (365+ Companies)
+```bash
+# Export all 365+ company records to JSON, CSV, and SQLite
+python main.py internships --export
+
+# Filter by tier/category (e.g. 'faang', 'hft', 'unicorn', 'ai', 'saas')
+python main.py internships --category "hft"
+
+# Filter by role (e.g. 'SWE', 'AI', 'Quant', 'Cloud', 'Cybersecurity')
+python main.py internships --role "AI"
+
+# Filter by location (e.g. 'Bangalore', 'Hyderabad', 'Pune', 'Gurgaon', 'Remote')
+python main.py internships --location "Bangalore"
+
+# Search specific company
+python main.py internships --search "Jane Street"
+```
 
 ### 🏢 Company Scraper
 ```bash
@@ -218,7 +237,38 @@ python main.py ecommerce --category "Science Fiction" --pages 2
 
 ## 🔍 Scraper Deep-Dive & Python Usage
 
-### 1. Company Scraper
+### 1. Batch 2028 Tech Internship Scraper
+[scrapers/internship_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/internship_scraper.py) | [scrapers/internship_data.py](file:///Users/pawasthi/webscraping-env/scrapers/internship_data.py)
+
+Extracts structured internship intelligence for **365+ tech companies** hiring Batch 2028 B.Tech undergraduates across FAANG, HFTs, Unicorns, AI Startups, Global SaaS, and Investment Banks.
+
+```python
+from scrapers import InternshipScraper
+
+scraper = InternshipScraper()
+
+# 1. Filter by category/tier (e.g., 'faang', 'hft', 'unicorn', 'ai', 'saas', 'banking')
+hft_companies = scraper.filter_internships(category="hft")
+for comp in hft_companies:
+    print(f"[{comp['category'].upper()}] {comp['name']} | Stipend: {comp['stipend_range']} | Portal: {comp['careers_url']}")
+
+# 2. Filter by role domain (e.g., 'SWE', 'AI', 'Quant', 'Cloud', 'Cybersecurity')
+ai_roles = scraper.filter_internships(role="AI")
+
+# 3. Filter by location (e.g., 'Bangalore', 'Hyderabad', 'Pune', 'Remote')
+blr_internships = scraper.filter_internships(location="Bangalore")
+
+# 4. Search company by keyword/technology
+rust_internships = scraper.filter_internships(search_query="Rust")
+
+# 5. Export complete database to JSON, CSV, and SQLite
+results = scraper.export_all()
+print(f"Exported {results['total_companies']} company records!")
+```
+
+---
+
+### 2. Company Scraper
 [scrapers/company_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/company_scraper.py)
 
 Extracts corporate profile dossiers combining website metadata, detected frontend/backend technologies, open job postings, and GitHub organization repositories.
@@ -241,7 +291,7 @@ print(dossier["name"], dossier["headquarters"], dossier["tech_stack"])
 
 ---
 
-### 2. Restaurant Scraper
+### 3. Restaurant Scraper
 [scrapers/restaurant_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/restaurant_scraper.py)
 
 Scrapes restaurant directories for business name, ratings, review counts, price tier (`$` to `$$$$`), full address, telephone number, operating hours, and structured menu items with dietary labels (`Vegan`, `Gluten-Free`, `Vegetarian`).
@@ -262,7 +312,7 @@ for item in details["menu_items"]:
 
 ---
 
-### 3. Game & Steam Scraper
+### 4. Game & Steam Scraper
 [scrapers/game_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/game_scraper.py)
 
 Extracts Steam store intelligence, pricing, discounts, platform compatibility (Windows, Mac, Linux), developer/publisher, Metacritic score, Steam user reviews %, and PC system hardware requirements.
@@ -283,7 +333,7 @@ free_shooters = scraper.scrape_top_free_games(category="shooter", limit=5)
 
 ---
 
-### 4. Wikipedia Scraper
+### 5. Wikipedia Scraper
 [scrapers/wikipedia_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/wikipedia_scraper.py)
 
 Deep structured extractor for Wikipedia articles. Parses Infoboxes into clean key-value dictionaries, section hierarchy outline, HTML tables converted directly to Pandas DataFrames, citations/references, and external links.
@@ -303,7 +353,7 @@ print("Extracted Tables:", len(article["tables"]))
 
 ---
 
-### 5. E-Commerce Scraper
+### 6. E-Commerce Scraper
 [scrapers/ecommerce_scraper.py](file:///Users/pawasthi/webscraping-env/scrapers/ecommerce_scraper.py)
 
 Scrapes e-commerce product catalogs with category discovery, pagination crawling, live pricing, star ratings, stock availability, and deep product views (UPC barcodes, tax rates, reviews count).
@@ -328,7 +378,8 @@ print(details["title"], details["price"], details["upc"], details["stock_quantit
 The [DataStorage](file:///Users/pawasthi/webscraping-env/scrapers/core/storage.py) utility automatically organizes and stores scraped data in `data/output/`:
 
 ### 1. SQLite Database (`data/output/scraped_data.db`)
-Includes 5 pre-configured schemas:
+Includes 6 pre-configured schemas:
+- `internships_2028`: id, name, category, tier, careers_url, application_portal, target_batch, roles, locations, stipend_range, ppo_potential, tech_stack, test_format, raw_json
 - `companies`: id, name, domain, industry, employees, tech_stack, job_openings_count, raw_json
 - `restaurants`: id, name, cuisine, rating, review_count, price_tier, city, address, phone, menu_items_count, raw_json
 - `games`: id, title, app_id, price, currency, is_free, release_date, developer, publisher, metacritic_score, raw_json
@@ -339,7 +390,7 @@ Includes 5 pre-configured schemas:
 from scrapers.core.storage import DataStorage
 
 storage = DataStorage()
-df = storage.query_db("SELECT name, rating, price_tier FROM restaurants WHERE rating >= 4.5")
+df = storage.query_db("SELECT name, category, stipend_range, ppo_potential FROM internships_2028 WHERE category = 'hft'")
 print(df)
 ```
 
@@ -357,9 +408,10 @@ storage.save_csv(data, "my_export.csv")
 
 ## 📓 Interactive Jupyter Notebooks
 
-Two comprehensive notebooks are provided for interactive data exploration:
-1. **[Webscrapping.ipynb](file:///Users/pawasthi/webscraping-env/Webscrapping.ipynb)**: Scrapes and analyzes the Top 300 MNC companies from AmbitionBox using BeautifulSoup, Requests, and Pandas.
-2. **[notebooks/web_scraping_masterclass.ipynb](file:///Users/pawasthi/webscraping-env/notebooks/web_scraping_masterclass.ipynb)**: Step-by-step masterclass demonstrating all 5 scraper modules, data transformations, and SQLite persistence.
+Three comprehensive notebooks are provided for interactive data exploration:
+1. **[Batch_2028_Tech_Internship_Tracker.ipynb](file:///Users/pawasthi/webscraping-env/notebooks/Batch_2028_Tech_Internship_Tracker.ipynb)**: Complete Batch 2028 tech internships intelligence explorer across 365+ top tier tech companies, sector distributions, HFT vs FAANG comparison, and interactive company search engine.
+2. **[Webscrapping.ipynb](file:///Users/pawasthi/webscraping-env/Webscrapping.ipynb)**: Scrapes and analyzes the Top 300 MNC companies from AmbitionBox using BeautifulSoup, Requests, and Pandas.
+3. **[notebooks/web_scraping_masterclass.ipynb](file:///Users/pawasthi/webscraping-env/notebooks/web_scraping_masterclass.ipynb)**: Step-by-step masterclass demonstrating all scraper modules, data transformations, and SQLite persistence.
 
 To launch JupyterLab:
 ```bash
@@ -380,42 +432,48 @@ pytest
 pytest -v
 
 # Run tests for a specific scraper
-pytest tests/test_game_scraper.py
+pytest tests/test_internship_scraper.py
 ```
 
 ### Test Results
 ```text
 ============================= test session starts ==============================
-collected 26 items
+collected 32 items
 
 tests/test_company_scraper.py::test_scrape_company_jobs PASSED           [  3%]
-tests/test_company_scraper.py::test_scrape_github_org PASSED             [  7%]
-tests/test_company_scraper.py::test_scrape_company_website_meta PASSED   [ 11%]
-tests/test_company_scraper.py::test_build_company_dossier PASSED         [ 15%]
-tests/test_core.py::test_clean_text PASSED                               [ 19%]
-tests/test_core.py::test_extract_digits PASSED                           [ 23%]
-tests/test_core.py::test_parse_price PASSED                              [ 26%]
-tests/test_core.py::test_parse_rating PASSED                             [ 30%]
-tests/test_core.py::test_slugify PASSED                                  [ 34%]
-tests/test_core.py::test_table_to_dataframe PASSED                       [ 38%]
-tests/test_core.py::test_format_bytes PASSED                             [ 42%]
-tests/test_core.py::test_storage_json_and_csv PASSED                     [ 46%]
-tests/test_core.py::test_storage_sqlite_crud PASSED                      [ 50%]
-tests/test_core.py::test_base_scraper_context_manager PASSED             [ 53%]
-tests/test_ecommerce_scraper.py::test_scrape_categories PASSED           [ 57%]
-tests/test_ecommerce_scraper.py::test_scrape_category_products PASSED    [ 61%]
-tests/test_ecommerce_scraper.py::test_scrape_product_details PASSED      [ 65%]
-tests/test_game_scraper.py::test_search_steam_games PASSED               [ 69%]
-tests/test_game_scraper.py::test_scrape_game_details_steam_api PASSED    [ 73%]
-tests/test_game_scraper.py::test_scrape_top_free_games PASSED            [ 76%]
-tests/test_restaurant_scraper.py::test_search_restaurants PASSED         [ 80%]
-tests/test_restaurant_scraper.py::test_scrape_restaurant_details_and_menu PASSED [ 84%]
-tests/test_restaurant_scraper.py::test_restaurant_dietary_options PASSED [ 88%]
-tests/test_wikipedia_scraper.py::test_wikipedia_search PASSED            [ 92%]
+tests/test_company_scraper.py::test_scrape_github_org PASSED             [  6%]
+tests/test_company_scraper.py::test_scrape_company_website_meta PASSED   [  9%]
+tests/test_company_scraper.py::test_build_company_dossier PASSED         [ 12%]
+tests/test_core.py::test_clean_text PASSED                               [ 15%]
+tests/test_core.py::test_extract_digits PASSED                           [ 18%]
+tests/test_core.py::test_parse_price PASSED                              [ 21%]
+tests/test_core.py::test_parse_rating PASSED                             [ 25%]
+tests/test_core.py::test_slugify PASSED                                  [ 28%]
+tests/test_core.py::test_table_to_dataframe PASSED                       [ 31%]
+tests/test_core.py::test_format_bytes PASSED                             [ 34%]
+tests/test_core.py::test_storage_json_and_csv PASSED                     [ 37%]
+tests/test_core.py::test_storage_sqlite_crud PASSED                      [ 40%]
+tests/test_core.py::test_base_scraper_context_manager PASSED             [ 43%]
+tests/test_ecommerce_scraper.py::test_scrape_categories PASSED           [ 46%]
+tests/test_ecommerce_scraper.py::test_scrape_category_products PASSED    [ 50%]
+tests/test_ecommerce_scraper.py::test_scrape_product_details PASSED      [ 53%]
+tests/test_game_scraper.py::test_search_steam_games PASSED               [ 56%]
+tests/test_game_scraper.py::test_scrape_game_details_steam_api PASSED    [ 59%]
+tests/test_game_scraper.py::test_scrape_top_free_games PASSED            [ 62%]
+tests/test_internship_scraper.py::test_get_all_internships_count PASSED [ 65%]
+tests/test_internship_scraper.py::test_filter_by_category PASSED         [ 68%]
+tests/test_internship_scraper.py::test_filter_by_role PASSED             [ 71%]
+tests/test_internship_scraper.py::test_filter_by_location PASSED         [ 75%]
+tests/test_internship_scraper.py::test_filter_by_keyword_search PASSED   [ 78%]
+tests/test_internship_scraper.py::test_export_all_internships PASSED     [ 81%]
+tests/test_restaurant_scraper.py::test_search_restaurants PASSED         [ 84%]
+tests/test_restaurant_scraper.py::test_scrape_restaurant_details_and_menu PASSED [ 87%]
+tests/test_restaurant_scraper.py::test_restaurant_dietary_options PASSED [ 90%]
+tests/test_wikipedia_scraper.py::test_wikipedia_search PASSED            [ 93%]
 tests/test_wikipedia_scraper.py::test_scrape_wikipedia_article_details PASSED [ 96%]
 tests/test_wikipedia_scraper.py::test_scrape_random_article PASSED       [100%]
 
-============================= 26 passed in 16.93s ==============================
+============================= 32 passed in 17.91s ==============================
 ```
 
 ---
